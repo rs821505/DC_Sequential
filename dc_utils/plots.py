@@ -1,12 +1,13 @@
 import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 import random
 import matplotlib.cm as cm
 import warnings
 warnings.filterwarnings('ignore')
-
 sns.set_style('darkgrid')
+
 
 def _run_plot(times,states,params,ninter,model):
 
@@ -48,4 +49,45 @@ def _add_values(ax,time,params,c,idx,ninter,model):
             fontsize = 12,
             color = c,
             )
-#  bbox=dict(boxstyle="square,pad=0.1", fc="gray", ec="b", lw=2)
+        
+def _print_dims(model):
+    """
+    """
+    dims = ['states dim','parameters dim', 'times dim']
+    for label,quantity in zip(dims,model._get_outputs()):
+        print(label,quantity.shape)
+        
+def _create_paramdf(params,cols,names=None):
+    """
+    """
+    if cols.__eq__('pp'):
+        names = [r"$\alpha$",r"$\beta$",r"$\delta$",r"$\gamma$"]
+    elif cols.__eq__('sir'):
+        names = [r"$R_0$"]
+    elif cols.__eq__('rlc'):
+        names = [r"$R$",r"$L$",r"$C$"]
+
+    pdf = pd.DataFrame(params,columns=names)
+    pdf.index.name ='Interval'
+    return pdf
+        
+def _plot_intervals(times):
+    """
+    """
+    intervals = times[:-1,-1]
+    for i in range(intervals.size):
+        plt.axvline(x = intervals[i], linestyle='--',color='g')
+        
+        
+def _plot_states(states,times,labels,intervals=True):
+    """
+    """
+    plt.plot(np.concatenate(states))
+    plt.xlabel('Time'); plt.ylabel('States')
+    plt.xlim(0,np.round(times.max()))
+
+    if intervals:
+        _plot_intervals(times)
+        
+    plt.legend(labels)
+    plt.show()
