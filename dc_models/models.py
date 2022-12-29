@@ -14,14 +14,18 @@ class model:
         Parameters
         _________________       
         :param state_init:      initial options: x,y or s,i,r or r,l,c
-        :param time_step:       step size
+        :param num_tsteps:       step size
         :param tend:            stopping time
+        :param true_model:      boolean true if this is ground truth model
         :param N:               population size for sir
-        :param intervals:      number of time intervals
+        :param num_parameters:   number of parameters to estimate
+        :supports:              list of supports for each parameter
+        :param drift_windows:   number of parameter drift (resampling) windows
+        :param assim_windows:   number of time intervals
         """
 
         self.__dict__.update((param, value) for param,value in kwargs.items()) 
-        self.times = np.split(np.linspace(0.,self.tend, self.time_step),self.intervals)                 
+        self.times = np.split(np.linspace(0.,self.tend, self.num_tsteps),self.drift_windows)                 
         self.states = list()
         self.parameters = list()
         
@@ -30,7 +34,7 @@ class model:
         """
         return integrate.odeint(ode_system, x0, time, args = poi)
     
-    def _get_parameters(self,samples, start=0,end=1):
+    def _get_parameters(self):
         """
         Params:
         ---------------
@@ -52,8 +56,13 @@ class model:
         :param c: conductance (farads)
         :param l: inductance  (henries)
         """
-        
-        return tuple([np.random.uniform(start,end) for _ in range(samples)])
+        if self.true_model:
+            return tuple(self.lambda_true)
+        else:
+            sampled_parameters = tuple(
+                [np.random.uniform(*self.supports[i]) for i in range(self.num_parameters)]
+            )
+        return sampled_parameters
     
     def _save_output(self,state,parameter):
         self.states.append(state)
@@ -90,10 +99,9 @@ class sir(model):
         """
         """
         X0 = self.state_init
-        samples = 2
         
-        for i in range(self.intervals):
-            pargs = self._get_parameters(samples)                 
+        for i in range(self.drift_windows):
+            pargs = self._get_parameters()                 
             s,i,r = self._integrate(self._system, X0, self.times[i], pargs).T
             X0 = s[-1],i[-1],r[-1]
             self._save_output(np.column_stack([s,i,r]),pargs[0]/pargs[1])
@@ -124,11 +132,10 @@ class lotka_volterra(model):
         """
         
         X0 = list(self.state_init)   
-        samples = 4
 
-        for i in range(self.intervals):
+        for i in range(self.drift_windows):
 
-            pargs = self._get_parameters(samples)
+            pargs = self._get_parameters()
             res = self._integrate(self._system,X0,self.times[i],pargs)
             X0 = res[-1,:]
             self._save_output(res,pargs)
@@ -156,13 +163,11 @@ class rlc(model):
         """
 
         """
-#         pargs = tuple([1e3,1e-9,20e-3]) # hard coded for initial testing
-        pargs = tuple([.2,1,1])
-        for i in range(self.intervals):
+#         pargs = tuple([.2,1,1])  # hard coded for initial testing
+        for i in range(self.drift_windows):
 
             X0 =  self.state_init
-            samples = 3
-#             pargs = self._get_parameters(samples)
+            pargs = self._get_parameters()
 
             res = self._integrate(self._system,X0,self.times[i],pargs)
             X0 = res[-1,:]

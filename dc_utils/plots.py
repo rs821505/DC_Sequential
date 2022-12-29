@@ -68,15 +68,15 @@ def _create_paramdf(params,cols,names=None):
         names = [r"$R$",r"$L$",r"$C$"]
 
     pdf = pd.DataFrame(params,columns=names)
-    pdf.index.name ='Interval'
+    pdf.index.name ='Drift_Window'
     return pdf
         
-def _plot_intervals(times):
+def _plot_intervals(states,times):
     """
     """
     intervals = times[:-1,-1]
     for i in range(intervals.size):
-        plt.axvline(x = intervals[i], linestyle='--',color='g')
+        plt.axvline(intervals[i],0,np.max(states)+1, linestyle='--',linewidth=1,color='g')
         
         
 def _plot_states(states,times,labels,intervals=True):
@@ -87,7 +87,7 @@ def _plot_states(states,times,labels,intervals=True):
     plt.xlim(0,np.round(times.max()))
 
     if intervals:
-        _plot_intervals(times)
+        _plot_intervals(states,times)
         
     plt.legend(labels)
     plt.show()
