@@ -104,24 +104,24 @@ class Model:
 
     def generate_runs(self):
 
-        for i in range(self.number_forward_runs):
+        for run in range(self.number_forward_runs):
 
             self.run_model()
             states, params, sim_times = self.get_outputs()
+            sampling_rate = states.shape[1] // self.number_observations
 
-            if i:
+            if run:
                 runs = np.append(
                     runs,
-                    states[:, :: (states.shape[1] // self.number_observations), :],
+                    states[:, ::sampling_rate, :],
                     axis=0,
                 )
-                lambdas[i, :, :] = params
+                print(f"p shape:{params.shape}")
+                lambdas = np.append(lambdas, np.squeeze(params, axis=0), axis=0)
+
             else:
-                runs = states[:, :: (states.shape[1] // self.number_observations), :]
-                lambdas = np.zeros(
-                    [self.number_forward_runs, params.shape[0], params.shape[1]]
-                )
-                lambdas[0, :, :] = params
+                runs = states[:, ::sampling_rate, :]
+                lambdas = params
 
         return runs, lambdas
 
